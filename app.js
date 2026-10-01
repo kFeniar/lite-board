@@ -4,7 +4,7 @@
 var C = window.THKO, B = window.BLOCKS;
 var KEY = "thko_" + C.session;
 
-var S = { name:"", role:"", i:0, a:{}, sent:{} };
+var S = { name:"", role:"", i:0, j:-1, a:{}, sent:{} };
 try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
@@ -132,28 +132,25 @@ function gate(){
   '<div class="mid"><div class="mid-in">'+
     '<p class="eyebrow">The Kokumi · '+esc(C.client)+'</p>'+
     '<h1>'+esc(C.title)+'</h1>'+
-    '<p class="lede">Six blocks. You answer on your own — nobody sees your answers until we reveal them together.</p>'+
+    '<p class="lede">'+B.length+' blocks, '+B.reduce(function(s,b){return s+b.cards.length;},0)+' questions. You answer on your own — nobody sees your answers until we reveal them together.</p>'+
     '<hr style="margin:34px 0 26px">'+
     '<label class="mono" style="display:block;margin-bottom:9px">Your name</label>'+
     '<input type="text" id="gn" autocomplete="name" value="'+esc(S.name)+'">'+
     '<label class="mono" style="display:block;margin:20px 0 9px">Your role</label>'+
-    '<div id="gr">'+ C.roles.map(function(r){
-      return '<label class="opt'+(S.role===r?" on":"")+'"><input type="radio" name="role" value="'+esc(r)+'"'+
-             (S.role===r?" checked":"")+'><span>'+esc(r)+'</span></label>'; }).join('') +'</div>'+
+    '<input type="text" id="gr" autocomplete="organization-title" '+
+      'placeholder="'+esc(C.rolePlaceholder || "How you would say it in a meeting")+'" '+
+      'value="'+esc(S.role)+'">'+
     '<div class="row" style="margin-top:22px"><button id="go" disabled>Begin</button></div>'+
   '</div></div>';
 
-  var n=$("#gn"), go=$("#go");
-  function chk(){ go.disabled = !(n.value.trim() && S.role); }
+  var n=$("#gn"), r=$("#gr"), go=$("#go");
+  function chk(){ go.disabled = !(n.value.trim() && r.value.trim()); }
   n.addEventListener("input", function(){ S.name=n.value.trim(); save(); chk(); });
-  $("#gr").addEventListener("change", function(e){
-    S.role = e.target.value; save();
-    [].forEach.call(document.querySelectorAll("#gr .opt"), function(l){
-      l.classList.toggle("on", l.querySelector("input").checked); });
-    chk();
-  });
+  r.addEventListener("input", function(){ S.role=r.value.trim(); save(); chk(); });
+  n.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); r.focus(); } });
+  r.addEventListener("keydown", function(e){ if(e.key==="Enter" && !go.disabled){ e.preventDefault(); go.click(); } });
   chk();
-  go.addEventListener("click", function(){ S.i = firstUnsent(); save(); render(); });
+  go.addEventListener("click", function(){ S.i = firstUnsent(); S.j = -1; save(); render(); });
 }
 function firstUnsent(){ for (var k=0;k<B.length;k++) if(!S.sent[B[k].id]) return k; return B.length; }
 
@@ -185,11 +182,14 @@ function field(c){
   }
 
   if (c.type==="slider"){
-    var set = (v!==undefined && v!==null && v!=="");
+    var sq = "";
+    for (var k=1;k<=10;k++){
+      sq += '<button type="button" class="sq'+(v===k?" on":"")+'" data-sq="'+c.id+'" data-n="'+k+'" '+
+            'aria-label="'+k+' of 10, '+esc(c.l)+' to '+esc(c.r)+'">'+k+'</button>';
+    }
     return '<div class="sl-ends"><span>'+esc(c.l)+'</span><span>'+esc(c.r)+'</span></div>'+
-      '<input type="range" min="-3" max="3" step="1" value="'+(set?v:0)+'" data-c="'+c.id+'">'+
-      '<div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>'+
-      '<div class="slv" data-v="'+c.id+'">'+(set?label(c,v):"drag to answer")+'</div>';
+      '<div class="sqs">'+sq+'</div>'+
+      '<div class="slv" data-v="'+c.id+'">'+(v?('You picked '+v+' of 10'):'Tap a number')+'</div>';
   }
 
   if (c.type==="color"){
@@ -231,62 +231,152 @@ function label(c,v){
 }
 
 /* ---------- render ---------- */
+function answered(c){
+  var v = S.a[c.id];
+  if (v === undefined || v === null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (typeof v === "number") return true;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "object"){
+    for (var k in v){ if (String(v[k]||"").trim() !== "") return true; }
+    return false;
+  }
+  return false;
+}
+function blockDone(b){ return b.cards.filter(answered).length; }
+function totalCards(){ return B.reduce(function(s,x){ return s + x.cards.length; }, 0); }
+function cardsBefore(i){ var n=0; for(var k=0;k<i;k++) n += B[k].cards.length; return n; }
+
+function topBar(b){
+  var done = cardsBefore(S.i) + Math.max(0, S.j);
+  var pct  = Math.round(done / totalCards() * 100);
+  return '<div class="bar"><div class="bar-in">'+
+    '<span class="who">'+esc(S.name)+' · '+esc(S.role)+'</span>'+
+    '<span class="who" style="margin-left:auto">'+ (b ? 'Block '+b.n+' · '+esc(b.name) : '') +'</span>'+
+  '</div><div class="prog"><i style="width:'+pct+'%"></i></div></div>';
+}
+
+/* ---------- read-only block opener ---------- */
+function blockIntro(b){
+  $("#app").innerHTML =
+    topBar(b)+
+    '<div class="wrap screen">'+
+      '<div class="scr-in">'+
+        '<p class="eyebrow">Block '+b.n+' · '+b.cards.length+' questions · about '+b.mins+' minutes</p>'+
+        '<h2 style="margin-top:14px">'+esc(b.name)+'</h2>'+
+        '<p class="lede">'+esc(b.intro)+'</p>'+
+        '<p class="note readonly">Nothing to answer on this screen.</p>'+
+      '</div>'+
+      '<div class="nav">'+
+        (S.i>0 ? '<button id="back" class="ghost">Back</button>' : '<span></span>')+
+        '<button id="next">Start block '+b.n+'</button>'+
+      '</div>'+
+    '</div>';
+  $("#next").addEventListener("click", function(){ S.j=0; save(); render(); });
+  var bk=$("#back");
+  if (bk) bk.addEventListener("click", function(){ S.i--; S.j=B[S.i].cards.length-1; save(); render(); });
+  window.scrollTo(0,0);
+}
+
+/* ---------- one question per screen ---------- */
 function render(){
   if (!S.name || !S.role) return gate();
   if (S.i >= B.length) return finished();
 
-  var b = B[S.i], sent = !!S.sent[b.id];
+  var b = B[S.i];
+  if (S.j < 0) return blockIntro(b);
+  if (S.j >= b.cards.length) return blockEnd(b);
+
+  var c = b.cards[S.j], last = (S.j === b.cards.length - 1);
 
   $("#app").innerHTML =
-  '<div class="bar"><div class="bar-in">'+
-    '<span class="who">'+esc(S.name)+' · '+esc(S.role)+'</span>'+
-    '<span class="pips">'+ B.map(function(x,i){
-      return '<i class="pip'+(S.sent[x.id]?" done":(i===S.i?" now":""))+'"></i>'; }).join('') +'</span>'+
-  '</div></div>'+
-  '<div class="wrap" style="padding-top:44px;padding-bottom:70px">'+
-    '<p class="eyebrow">Block '+b.n+' · '+b.mins+' minutes</p>'+
-    '<h2 style="margin-top:12px">'+esc(b.name)+'</h2>'+
-    '<p class="lede">'+esc(b.intro)+'</p>'+
-    '<hr style="margin:32px 0 26px">'+
-    b.cards.map(function(c,i){
-      return '<div class="card"><span class="cnum">'+b.n+'.'+(i+1)+'</span>'+
-        '<h3>'+esc(c.q)+'</h3>'+
+    topBar(b)+
+    '<div class="wrap screen">'+
+      '<div class="scr-in">'+
+        '<p class="eyebrow">'+b.n+'.'+(S.j+1)+' &nbsp;·&nbsp; '+(S.j+1)+' of '+b.cards.length+'</p>'+
+        '<h3 class="qh">'+esc(c.q)+'</h3>'+
         (c.note?'<p class="note">'+esc(c.note)+'</p>':'')+
-        '<div class="cbody">'+field(c)+'</div></div>'; }).join('')+
-    '<div class="row" style="margin-top:26px">'+
-      '<button id="sub"'+(sent?" disabled":"")+'>'+(sent?"Already submitted":"Submit block "+b.n)+'</button>'+
-      (S.i>0?'<button id="back" class="ghost sm">Back</button>':'')+
-    '</div>'+
-    '<p class="note" style="margin-top:14px">Your answers save as you type. Submitting sends the block to the host.</p>'+
-  '</div>';
+        '<div class="cbody">'+field(c)+'</div>'+
+      '</div>'+
+      '<div class="nav">'+
+        '<button id="back" class="ghost">Back</button>'+
+        '<span class="skip" id="skip">Skip</span>'+
+        '<button id="next">'+(last ? 'Review block '+b.n : 'Next')+'</button>'+
+      '</div>'+
+    '</div>';
 
-  wire(b);
+  wire(b, c);
   window.scrollTo(0,0);
 }
 
-function wire(b){
+/* ---------- block review + submit ---------- */
+function blockEnd(b){
+  var missing = b.cards.filter(function(c){ return !answered(c); });
+  var sent = !!S.sent[b.id];
+  $("#app").innerHTML =
+    topBar(b)+
+    '<div class="wrap screen">'+
+      '<div class="scr-in">'+
+        '<p class="eyebrow">Block '+b.n+' · review</p>'+
+        '<h2 style="margin-top:14px">'+ blockDone(b) +' of '+b.cards.length+' answered</h2>'+
+        (missing.length
+          ? '<p class="lede">Unanswered: '+ missing.map(function(c,i){
+              return '<a href="#" class="jump" data-j="'+b.cards.indexOf(c)+'">'+(b.n+'.'+(b.cards.indexOf(c)+1))+'</a>';
+            }).join(', ') +'</p>'
+          : '<p class="lede">Everything answered.</p>')+
+        '<p class="note readonly">Submitting sends this block to the host. You can still go back and change answers before you tap it.</p>'+
+      '</div>'+
+      '<div class="nav">'+
+        '<button id="back" class="ghost">Back</button>'+
+        '<button id="sub"'+(sent?' disabled':'')+'>'+(sent?'Already sent':'Submit block '+b.n)+'</button>'+
+      '</div>'+
+    '</div>';
+
+  $("#back").addEventListener("click", function(){ S.j=b.cards.length-1; save(); render(); });
+  [].forEach.call(document.querySelectorAll(".jump"), function(el){
+    el.addEventListener("click", function(e){ e.preventDefault(); S.j=+el.getAttribute("data-j"); save(); render(); });
+  });
+  $("#sub").addEventListener("click", function(){
+    var btn=this; btn.disabled=true; btn.textContent="Sending…";
+    var rows = b.cards.map(function(c){
+      return { block:b.id, card:c.id, answer:(S.a[c.id]===undefined ? "" : S.a[c.id]) };
+    });
+    send(rows).then(function(){
+      S.sent[b.id]=true; S.i++; S.j=-1; save();
+      status("Block "+b.n+" submitted"); render();
+    }).catch(function(){
+      btn.disabled=false; btn.textContent="Try again";
+      status("Still could not reach the host. Your answers are saved on this device and will send themselves — or tap to retry now.", true);
+    });
+  });
+  window.scrollTo(0,0);
+}
+
+function wire(b, c){
   var app = $("#app");
+
+  function sync(){
+    var n = $("#next"), s = $("#skip");
+    if (!n) return;
+    var ok = answered(c);
+    n.disabled = !ok;
+    if (s) s.hidden = ok;
+  }
 
   app.addEventListener("input", function(e){
     var t = e.target, id = t.getAttribute("data-c");
     if (!id) return;
     var k = t.getAttribute("data-k"), p = t.getAttribute("data-p");
-
     if (p !== null && p !== undefined && k){
-      S.a[id] = S.a[id] || {};
-      S.a[id][p] = S.a[id][p] || {};
-      S.a[id][p][k] = t.value;
+      S.a[id] = S.a[id] || {}; S.a[id][p] = S.a[id][p] || {}; S.a[id][p][k] = t.value;
     } else if (k){
-      S.a[id] = S.a[id] || {};
-      S.a[id][k] = t.value;
+      S.a[id] = S.a[id] || {}; S.a[id][k] = t.value;
     } else if (t.type === "range"){
       S.a[id] = +t.value;
-      var card = cardById(b, id), out = app.querySelector('[data-v="'+id+'"]');
-      if (out && card) out.textContent = label(card, t.value);
-    } else {
-      S.a[id] = t.value;
-    }
-    save();
+      var out = app.querySelector('[data-v="'+id+'"]');
+      if (out) out.textContent = label(c, t.value);
+    } else { S.a[id] = t.value; }
+    save(); sync();
   });
 
   app.addEventListener("change", function(e){
@@ -304,10 +394,21 @@ function wire(b){
       S.a[id] = arr;
       t.closest(".opt").classList.toggle("on", t.checked);
     }
-    save();
+    save(); sync();
   });
 
   app.addEventListener("click", function(e){
+    var sq = e.target.closest("[data-sq]");
+    if (sq){
+      var sid = sq.getAttribute("data-sq"), n = +sq.getAttribute("data-n");
+      S.a[sid] = (S.a[sid] === n) ? undefined : n;
+      if (S.a[sid] === undefined) delete S.a[sid];
+      [].forEach.call(app.querySelectorAll('[data-sq="'+sid+'"]'), function(x){
+        x.classList.toggle("on", +x.getAttribute("data-n") === S.a[sid]); });
+      var out = app.querySelector('[data-v="'+sid+'"]');
+      if (out) out.textContent = S.a[sid] ? ('You picked '+S.a[sid]+' of 10') : 'Tap a number';
+      save(); sync(); return;
+    }
     var pb = e.target.closest("[data-p]");
     if (pb && pb.tagName === "BUTTON"){
       var n = pb.getAttribute("data-p");
@@ -318,24 +419,16 @@ function wire(b){
     }
   });
 
-  var back = $("#back");
-  if (back) back.addEventListener("click", function(){ S.i--; save(); render(); });
-
-  $("#sub").addEventListener("click", function(){
-    var btn = this;
-    btn.disabled = true; btn.textContent = "Sending…";
-    var rows = b.cards.map(function(c){
-      return { block:b.id, card:c.id, answer: (S.a[c.id]===undefined ? "" : S.a[c.id]) };
-    });
-    send(rows).then(function(){
-      S.sent[b.id] = true; S.i++; save();
-      status("Block " + b.n + " submitted");
-      render();
-    }).catch(function(){
-      btn.disabled = false; btn.textContent = "Try again";
-      status("Still could not reach the host. Your answers are saved on this device and will send themselves — or tap to retry now.", true);
-    });
+  $("#next").addEventListener("click", function(){ S.j++; save(); render(); });
+  $("#back").addEventListener("click", function(){
+    if (S.j > 0){ S.j--; }
+    else if (S.i > 0 || true){ S.j = -1; }
+    save(); render();
   });
+  var sk = $("#skip");
+  if (sk) sk.addEventListener("click", function(){ S.j++; save(); render(); });
+
+  sync();
 }
 setTimeout(flushOutbox, 1500);
 

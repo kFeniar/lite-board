@@ -2,11 +2,62 @@
 (function(){
 "use strict";
 var C = window.THKO, B = window.BLOCKS;
-var KEY = "thko_" + C.session;
+
+/* ---- saved-state key, fingerprinted to the question set -----------------
+   A saved answer is only meaningful against the question set it was given
+   for. When the questions change, the old card ids no longer match and the
+   restored answers submit as blanks. So the key carries a fingerprint of
+   every block and card id: change one question and every old save is simply
+   ignored instead of silently half-restored. Nothing to remember to bump. */
+var FP = (function(){
+  var s = "", i, j;
+  for (i=0;i<B.length;i++){ s += B[i].id + ":";
+    for (j=0;j<B[i].cards.length;j++) s += B[i].cards[j].id + ","; s += "|"; }
+  var h = 5381;
+  for (i=0;i<s.length;i++){ h = ((h*33) ^ s.charCodeAt(i)) >>> 0; }
+  return h.toString(36);
+})();
+var PREFIX = "thko_" + C.session;
+var KEY    = PREFIX + "_" + FP;
 
 var S = { name:"", role:"", i:0, j:-1, a:{}, sent:{} };
 try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---- rescue, then retire, saves from an older question set --------------
+   Old ANSWERS are dropped (their ids are meaningless now), but anything
+   still sitting unsent in an old outbox is a real submission someone made
+   and is carried over so it still reaches the sheet. Name and role are
+   kept too, so a returning participant does not retype them.             */
+(function(){
+  var stale = [], k, i;
+  try {
+    for (i=0;i<localStorage.length;i++){
+      k = localStorage.key(i);
+      if (k && k.indexOf(PREFIX) === 0 && k !== KEY && k !== KEY + "_outbox") stale.push(k);
+    }
+  } catch(e){ return; }
+  if (!stale.length) return;
+  var carry = [];
+  stale.forEach(function(k){
+    try {
+      var v = JSON.parse(localStorage.getItem(k) || "null");
+      if (/_outbox$/.test(k)) { if (Array.isArray(v)) carry = carry.concat(v); }
+      else if (v && typeof v === "object") {
+        if (!S.name && v.name) S.name = v.name;
+        if (!S.role && v.role) S.role = v.role;
+      }
+    } catch(e){}
+    try { localStorage.removeItem(k); } catch(e){}
+  });
+  if (carry.length) {
+    try {
+      var cur = JSON.parse(localStorage.getItem(KEY + "_outbox") || "[]");
+      localStorage.setItem(KEY + "_outbox", JSON.stringify(cur.concat(carry)));
+    } catch(e){}
+  }
+  if (S.name || S.role) save();
+})();
 
 
 /* ---------- layout, shipped with the logic ----------

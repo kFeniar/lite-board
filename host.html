@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Board Host</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..700,0..100,0..1&amp;family=Archivo:wdth,wght@75..125,400..700&amp;family=Instrument+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="thko.css?v=5">
+<style>
+/* the host view on the same system as the board */
+:root{--ground:#FFFBF8;--shoyu:#0A0A0A;--tamari:#5F5750;--nuka:#E4DCD0;
+ --amber:#7A2234;--negi:#7A2234;
+ --serif:"Fraunces",Georgia,serif;
+ --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,sans-serif;
+ --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+body{font-family:var(--sans);color:var(--shoyu)}
+h1,h2{font-family:var(--serif);font-variation-settings:"opsz" 144,"SOFT" 0,"WONK" 1;
+ font-weight:700;letter-spacing:-.01em}
+h3{font-family:var(--serif);font-variation-settings:"opsz" 44,"SOFT" 0,"WONK" 0;font-weight:700}
+
+/* ---- the matrix ---- */
+body.gridview .wrap.wide{max-width:none;padding-left:18px;padding-right:18px}
+.gwrap{overflow:auto;max-height:78vh;border:1px solid var(--nuka);border-radius:3px;background:#fff}
+.gtab{border-collapse:separate;border-spacing:0;font-size:13px;line-height:1.4}
+.gtab th,.gtab td{border-bottom:1px solid #F0E9DF;border-right:1px solid #F0E9DF;
+ padding:9px 11px;text-align:left;vertical-align:top}
+.gtab tbody td{background:#fff}   /* opaque, so nothing bleeds under the pinned column */
+.gtab thead th{position:sticky;top:0;z-index:3;background:#0A0A0A;color:#F6F1EB;
+ border-bottom:1px solid #0A0A0A;min-width:150px;max-width:230px}
+.gtab thead th.qcol{z-index:5;left:0;background:#0A0A0A;color:#F6F1EB;
+ font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
+.gtab .pn{font-weight:600;font-size:13px}
+.gtab .pr{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+ text-transform:uppercase;color:#A79E96;margin-top:2px}
+.gtab .qcol{position:sticky;left:0;z-index:2;background:#FFFBF8;font-weight:400;
+ min-width:260px;max-width:340px;border-right:1px solid var(--nuka)}
+.gtab tbody .qcol{font-size:13px;color:#0A0A0A}
+.gtab .qn{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+ color:#A79E96;min-width:42px}
+.gtab .brow th{background:#F2EBE1;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+ text-transform:uppercase;color:#5F5750}
+.gtab .brow td{background:#F2EBE1}
+.gtab tbody tr:hover td{background:#FFFCF6}
+.gtab .no{color:#C9C1B8}
+@media print{ .gwrap{max-height:none;overflow:visible} .bar{display:none} }
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in wide">
+  <span class="who">Host · The Kokumi</span>
+  <span class="row">
+    <label class="mono" style="cursor:pointer;display:flex;align-items:center;gap:6px">
+      <input type="checkbox" id="auto" style="accent-color:var(--tamari)"><span> auto</span></label>
+    <button class="ghost sm" id="rf">Refresh</button>
+    <button class="ghost sm" id="view">Grid</button>
+    <button class="ghost sm" id="csv">CSV</button>
+    <button class="sm" id="brief">Export brief</button>
+  </span>
+</div></div>
+
+<div class="wrap wide" style="padding-top:38px;padding-bottom:80px">
+  <div id="head"></div>
+  <div class="row" id="nav" style="margin:26px 0 30px"></div>
+  <hr style="margin-bottom:34px">
+  <div id="body"></div>
+</div>
+
+<script src="config.js?v=5"></script>
+<script src="data.js?v=5"></script>
+<script src="host.js?v=5"></script>
+</body>
+</html>

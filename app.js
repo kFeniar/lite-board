@@ -8,6 +8,17 @@ var S = { name:"", role:"", i:0, j:-1, a:{}, sent:{} };
 try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
+
+/* ---------- layout, shipped with the logic ----------
+   Injected here, not in thko.css, so the new screens can never be
+   served with an old stylesheet. ------------------------------------ */
+(function(){
+  var s = document.createElement("style");
+  s.id = "thko-screen";
+  s.textContent = "\n/* ---- injected by app.js so the layout can never fall out of sync ---- */\n.prog{height:3px;background:#E9E0D2}\n.prog i{display:block;height:3px;background:#C07A32;transition:width .25s ease}\n.wrap.screen{min-height:calc(100vh - 58px);display:flex;flex-direction:column;\n padding-top:40px;padding-bottom:26px;box-sizing:border-box}\n.scr-in{flex:1;display:flex;flex-direction:column;justify-content:center;\n max-width:34rem;margin:0 auto;width:100%;padding-bottom:26px}\n.scr-in h2{margin-top:14px}\n.qh{font-size:clamp(22px,3.4vw,30px);line-height:1.24;letter-spacing:-.018em;margin:14px 0 0;font-weight:700}\n.scr-in .note{margin-top:12px}\n.scr-in .cbody{margin-top:26px}\n.readonly{opacity:.7}\n.nav{display:flex;align-items:center;gap:12px;max-width:34rem;margin:0 auto;width:100%;\n border-top:1px solid #E9E0D2;padding-top:18px}\n.nav #next{margin-left:auto}\n.nav button:disabled{opacity:.3;cursor:not-allowed}\n.skip{font-family:\"IBM Plex Mono\",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;\n color:#9A8B76;cursor:pointer;user-select:none}\n.skip:hover{color:#C07A32}\n.jump{color:#C07A32;text-decoration:none;border-bottom:1px solid currentColor}\n.sqs{display:flex;gap:7px;margin:16px 0 10px}\n.sq{flex:1 1 0;min-width:0;aspect-ratio:1/1;max-height:54px;border:1px solid #D9CFBC;\n background:none;border-radius:8px;font-family:\"IBM Plex Mono\",monospace;font-size:13px;\n color:#6B4526;padding:0;cursor:pointer;transition:border-color .12s,background .12s}\n.sq:hover{border-color:#C07A32;color:#C07A32}\n.sq.on{background:#16120E;border-color:#16120E;color:#FFFBF8}\n.sl-ends{display:flex;justify-content:space-between;gap:14px;\n font-family:\"IBM Plex Mono\",monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#6B4526}\n.slv{font-family:\"IBM Plex Mono\",monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;\n color:#9A8B76;text-align:center}\n@media(max-width:620px){\n .wrap.screen{min-height:calc(100svh - 58px);padding-top:24px}\n .nav{position:sticky;bottom:0;background:#FFFBF8;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}\n .sqs{gap:5px} .sq{font-size:11px;border-radius:6px}\n}\n";
+  document.head.appendChild(s);
+})();
+
 var $ = function(s){ return document.querySelector(s); };
 function esc(t){ return String(t==null?"":t).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }

@@ -155,7 +155,7 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 /* status */
 .stat{
   position:fixed;left:50%;transform:translateX(-50%);
-  bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;
+  top:calc(62px + env(safe-area-inset-top,0px));z-index:40;
   background:var(--shoyu);color:var(--ground);padding:11px 22px;border-radius:2px;
   font-family:var(--mono);font-size:11px;letter-spacing:.08em;
   box-shadow:0 8px 28px rgba(22,18,14,.2);max-width:calc(100vw - 40px);text-align:center;
@@ -188,3 +188,41 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
   .two .fix{font-size:21px}
   .two input{font-size:21px}
 }
+
+/* ---------- one question per screen ---------- */
+.prog{height:3px;background:var(--rule,#E9E0D2)}
+.prog i{display:block;height:3px;background:var(--amber,#C07A32);transition:width .25s ease}
+.wrap.screen{min-height:calc(100vh - 56px);display:flex;flex-direction:column;
+ padding-top:40px;padding-bottom:28px}
+.scr-in{flex:1;display:flex;flex-direction:column;justify-content:center;
+ max-width:34rem;margin:0 auto;width:100%;padding-bottom:26px}
+.qh{font-size:clamp(22px,3.6vw,30px);line-height:1.22;letter-spacing:-.018em;margin:14px 0 0;font-weight:700}
+.scr-in .note{margin-top:12px}
+.scr-in .cbody{margin-top:26px}
+.readonly{opacity:.72;font-style:normal}
+.nav{display:flex;align-items:center;gap:12px;max-width:34rem;margin:0 auto;width:100%;
+ border-top:1px solid var(--rule,#E9E0D2);padding-top:18px}
+.nav #next{margin-left:auto}
+.nav button:disabled{opacity:.3;cursor:not-allowed}
+.skip{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+ color:var(--nuka,#9A8B76);cursor:pointer;user-select:none}
+.skip:hover{color:var(--amber,#C07A32)}
+.jump{color:var(--amber,#C07A32);text-decoration:none;border-bottom:1px solid currentColor}
+@media(max-width:620px){
+ .wrap.screen{min-height:calc(100svh - 56px);padding-top:26px}
+ .nav{position:sticky;bottom:0;background:var(--paper,#FFFBF8);padding-bottom:env(safe-area-inset-bottom,0px)}
+}
+
+/* ---------- personality: ten squares ---------- */
+.sqs{display:flex;gap:7px;margin:16px 0 10px;flex-wrap:nowrap}
+.sq{flex:1 1 0;min-width:0;aspect-ratio:1/1;max-height:54px;border:1px solid var(--nuka,#D9CFBC);
+ background:none;border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:13px;
+ color:var(--tamari,#6B4526);padding:0;cursor:pointer;transition:border-color .12s,background .12s}
+.sq:hover{border-color:var(--amber,#C07A32);color:var(--amber,#C07A32)}
+.sq.on{background:var(--shoyu,#16120E);border-color:var(--shoyu,#16120E);color:var(--paper,#FFFBF8)}
+.sl-ends{display:flex;justify-content:space-between;gap:14px;
+ font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+ color:var(--tamari,#6B4526)}
+.slv{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+ color:var(--nuka,#9A8B76);text-align:center}
+@media(max-width:620px){ .sqs{gap:5px} .sq{font-size:11px;border-radius:6px} }

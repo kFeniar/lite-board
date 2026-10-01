@@ -5,7 +5,7 @@
 window.THKO = {
 
   // Paste your Apps Script /exec URL between the quotes
-  endpoint: "PASTE_YOUR_EXEC_URL_HERE",
+  endpoint: "https://script.google.com/macros/s/AKfycbxHD0hDBfgy9-SIYhiOvpsp2NmL2qfMMR-jbtqGWKh3fx0lvuj3NZEbxU0qYvi7lMUy/exec",
 
   // Anything you like. Change it if you re-run the same board with another group.
   session: "lite-2026-10-01",
